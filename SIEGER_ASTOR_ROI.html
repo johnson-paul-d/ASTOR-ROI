@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sieger ASTOR — ROI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #9B2423;
+    --red-light: rgba(155,36,35,0.12);
+    --red-mid: rgba(155,36,35,0.28);
+    --black: #0D0D0D;
+    --card: #161616;
+    --card2: #1e1e1e;
+    --cream: #F3ECE0;
+    --cream-dim: rgba(243,236,224,0.55);
+    --cream-faint: rgba(243,236,224,0.07);
+    --muted: #7a7169;
+    --border: rgba(155,36,35,0.22);
+    --border-subtle: rgba(243,236,224,0.08);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--black);
+    color: var(--cream);
+    font-family: 'Barlow', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: #111;
+    border-bottom: 2px solid var(--red);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 90px 90px 0;
+    border-color: transparent var(--red) transparent transparent;
+  }
+  .header-inner {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .header-logo {
+    padding: 22px 36px 20px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .header-logo img {
+    height: 40px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+  .header-divider {
+    border-left: 1px solid var(--border);
+    padding-left: 22px;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .header-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .header-live {
+    background: var(--red);
+    padding: 18px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 200px;
+  }
+  .header-live-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(243,236,224,0.65);
+    margin-bottom: 4px;
+  }
+  .header-live-value {
+    font-size: 26px;
+    font-weight: 900;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cream);
+    line-height: 1.1;
+  }
+  .tagline-bar {
+    background: var(--red);
+    padding: 5px 36px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(243,236,224,0.55);
+  }
+
+  /* LAYOUT */
+  .body-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+  .grid-main {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .grid-main { grid-template-columns: 1fr; }
+    .results-panel { position: static !important; }
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 14px;
+  }
+  .card-invest { border-color: var(--red); }
+
+  /* SECTION HEADER */
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-bar {
+    width: 3px;
+    height: 15px;
+    background: var(--red);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  /* FIELDS GRID */
+  .fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px 20px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field-note { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--cream-faint);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--red); }
+  .input-prefix, .input-suffix {
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: var(--red);
+    background: rgba(155,36,35,0.08);
+  }
+  .input-suffix { color: var(--muted); background: transparent; font-weight: 500; }
+  .input-prefix { border-right: 1px solid var(--border); }
+  .input-wrap input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--cream);
+    font-size: 13px;
+    padding: 9px 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    min-width: 0;
+    width: 100%;
+  }
+  .input-wrap input::-webkit-inner-spin-button,
+  .input-wrap input::-webkit-outer-spin-button { opacity: 0.3; }
+
+  /* RADIO */
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-btn {
+    padding: 7px 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    font-family: 'Barlow', sans-serif;
+    transition: all 0.15s;
+  }
+  .radio-btn.active {
+    border-color: var(--red);
+    background: var(--red-light);
+    color: var(--cream);
+  }
+  .radio-btn:hover:not(.active) { border-color: rgba(155,36,35,0.45); color: var(--cream-dim); }
+
+  /* RESULTS PANEL */
+  .results-panel { position: sticky; top: 20px; }
+
+  .kpi-main {
+    background: var(--red);
+    border-radius: 8px;
+    padding: 20px 22px;
+    margin-bottom: 12px;
+  }
+  .kpi-main-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(243,236,224,0.65);
+    margin-bottom: 6px;
+  }
+  .kpi-main-value {
+    font-size: 32px;
+    font-weight: 900;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cream);
+    line-height: 1;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .kpi-card {
+    background: var(--cream-faint);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .kpi-value {
+    font-size: 18px;
+    font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cream);
+    line-height: 1;
+  }
+
+  /* BREAKDOWN */
+  .breakdown-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+  }
+  .breakdown-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .benefit-row { margin-bottom: 9px; }
+  .benefit-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .benefit-label { font-size: 11px; color: var(--muted); }
+  .benefit-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cream);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .bar-track {
+    height: 3px;
+    background: rgba(243,236,224,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--red);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .breakdown-total {
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 12px;
+    padding-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .breakdown-total-label { font-size: 12px; font-weight: 700; color: var(--cream); }
+  .breakdown-total-value {
+    font-size: 13px;
+    font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--red);
+  }
+
+  /* VERDICT */
+  .verdict {
+    border-radius: 8px;
+    padding: 13px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+  .verdict.good {
+    background: var(--red-light);
+    border-color: var(--red);
+    color: #e87a79;
+  }
+  .verdict.warn {
+    background: rgba(243,236,224,0.04);
+    border-color: var(--border-subtle);
+    color: var(--muted);
+  }
+
+  /* FOOTER */
+  .panel-footer {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: rgba(243,236,224,0.15);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card { animation: fadeUp 0.4s ease both; }
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <img src="<img src="https://www.siegerastor.com/wp-content/themes/sieger/assets/img/logo.svg" alt="Sieger" width="300" height="119">">
+      <div class="header-divider">
+        <div class="header-title">ROI Calculator</div>
+        <div class="header-sub">ASTOR Automated Storage &amp; Retrieval System</div>
+      </div>
+    </div>
+    <div class="header-live">
+      <div class="header-live-label">Est. Annual Benefit</div>
+      <div class="header-live-value" id="live-total">—</div>
+    </div>
+  </div>
+  <div class="tagline-bar">Partnering Progress</div>
+</header>
+
+<!-- BODY -->
+<div class="body-wrap">
+  <div class="grid-main">
+
+    <!-- INPUTS COLUMN -->
+    <div class="inputs-col">
+
+      <!-- Warehouse -->
+      <div class="card">
+        <div class="section-head"><div class="section-bar"></div><span class="section-title">Warehouse Information</span></div>
+        <div class="fields-grid">
+          <div class="field full">
+            <label>Ownership Type</label>
+            <div class="radio-group">
+              <button class="radio-btn active" data-group="ownership" data-val="rented" onclick="setRadio('ownership','rented',this)">Rented</button>
+              <button class="radio-btn" data-group="ownership" data-val="owned" onclick="setRadio('ownership','owned',this)">Owned</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Warehouse Area</label>
+            <div class="input-wrap"><input type="number" id="area" value="20000"><span class="input-suffix">sq.m</span></div>
+          </div>
+          <div class="field" id="rent-field">
+            <label>Monthly Rent</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="rent" value="35"><span class="input-suffix">/sq.m/mo</span></div>
+          </div>
+          <div class="field" id="land-field" style="display:none">
+            <label>Land Cost</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="landCost" value="8000"><span class="input-suffix">/sq.m</span></div>
+          </div>
+          <div class="field" id="build-field" style="display:none">
+            <label>Building Cost</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="buildingCost" value="4000"><span class="input-suffix">/sq.m</span></div>
+          </div>
+          <div class="field">
+            <label>Depreciation Period</label>
+            <div class="input-wrap"><input type="number" id="depreciationYears" value="10"><span class="input-suffix">years</span></div>
+            <span class="field-note">Used to annualise investment</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Labor -->
+      <div class="card">
+        <div class="section-head"><div class="section-bar"></div><span class="section-title">Labor Information</span></div>
+        <div class="fields-grid">
+          <div class="field">
+            <label>Forklift Operators</label>
+            <div class="input-wrap"><input type="number" id="operators" value="20"></div>
+          </div>
+          <div class="field">
+            <label>Warehouse Helpers</label>
+            <div class="input-wrap"><input type="number" id="helpers" value="15"></div>
+          </div>
+          <div class="field">
+            <label>Supervisors</label>
+            <div class="input-wrap"><input type="number" id="supervisors" value="3"></div>
+          </div>
+          <div class="field">
+            <label>Salary / Operator</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="salaryOperator" value="25000"><span class="input-suffix">/mo</span></div>
+          </div>
+          <div class="field">
+            <label>Salary / Helper</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="salaryHelper" value="18000"><span class="input-suffix">/mo</span></div>
+          </div>
+          <div class="field">
+            <label>Salary / Supervisor</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="salarySuper" value="45000"><span class="input-suffix">/mo</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory -->
+      <div class="card">
+        <div class="section-head"><div class="section-bar"></div><span class="section-title">Inventory Information</span></div>
+        <div class="fields-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label>Annual Inventory Value</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="inventoryValue" value="500000000"></div>
+          </div>
+          <div class="field">
+            <label>Damage %</label>
+            <div class="input-wrap"><input type="number" id="damage" value="1" step="0.1"><span class="input-suffix">%</span></div>
+          </div>
+          <div class="field">
+            <label>Obsolescence %</label>
+            <div class="input-wrap"><input type="number" id="obsolescence" value="1" step="0.1"><span class="input-suffix">%</span></div>
+          </div>
+          <div class="field">
+            <label>Shrinkage / Theft %</label>
+            <div class="input-wrap"><input type="number" id="shrinkage" value="0.3" step="0.1"><span class="input-suffix">%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Production -->
+      <div class="card">
+        <div class="section-head"><div class="section-bar"></div><span class="section-title">Production Information</span></div>
+        <div class="fields-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label>Annual Production Value</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="annualProduction" value="1000000000"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ASTOR Investment -->
+      <div class="card card-invest">
+        <div class="section-head"><div class="section-bar"></div><span class="section-title">ASTOR Investment</span></div>
+        <div class="fields-grid">
+          <div class="field">
+            <label>ASTOR System Cost</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="astorCost" value="120000000"></div>
+          </div>
+          <div class="field">
+            <label>Installation Cost</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="installCost" value="5000000"></div>
+          </div>
+          <div class="field">
+            <label>WMS &amp; Software</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="wmsCost" value="3000000"></div>
+          </div>
+          <div class="field">
+            <label>Annual AMC Cost</label>
+            <div class="input-wrap"><span class="input-prefix">₹</span><input type="number" id="amcCost" value="2000000"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /inputs-col -->
+
+    <!-- RESULTS PANEL -->
+    <div class="results-panel">
+
+      <div class="kpi-main">
+        <div class="kpi-main-label">Annual ROI</div>
+        <div class="kpi-main-value" id="roi-val">—</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Payback Period</div>
+          <div class="kpi-value" id="payback-val">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Investment</div>
+          <div class="kpi-value" id="invest-val">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Annualised Cost</div>
+          <div class="kpi-value" id="annual-cost-val">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">10-Year NPV</div>
+          <div class="kpi-value" id="npv-val">—</div>
+        </div>
+      </div>
+
+      <div class="breakdown-card">
+        <div class="breakdown-title">
+          <div class="section-bar"></div>Benefit Breakdown
+        </div>
+        <div id="benefit-bars"></div>
+        <div class="breakdown-total">
+          <span class="breakdown-total-label">Total Annual Benefit</span>
+          <span class="breakdown-total-value" id="total-benefit-val">—</span>
+        </div>
+      </div>
+
+      <div class="verdict" id="verdict-box">—</div>
+
+      <div class="panel-footer">Sieger · Partnering Progress</div>
+    </div>
+
+  </div><!-- /grid-main -->
+</div>
+
+<script>
+  // State
+  let ownership = 'rented';
+
+  function setRadio(group, val, el) {
+    ownership = val;
+    document.querySelectorAll('[data-group="' + group + '"]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('rent-field').style.display = val === 'rented' ? '' : 'none';
+    document.getElementById('land-field').style.display = val === 'owned' ? '' : 'none';
+    document.getElementById('build-field').style.display = val === 'owned' ? '' : 'none';
+    recalc();
+  }
+
+  function gv(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+  function formatCr(val) {
+    if (!isFinite(val)) return '—';
+    if (Math.abs(val) >= 1e7) return '₹' + (val / 1e7).toFixed(2) + ' Cr';
+    if (Math.abs(val) >= 1e5) return '₹' + (val / 1e5).toFixed(2) + ' L';
+    return '₹' + Math.round(val).toLocaleString('en-IN');
+  }
+  function formatPct(val) { return isFinite(val) ? val.toFixed(1) + '%' : '—'; }
+
+  function recalc() {
+    const area = gv('area'), rent = gv('rent'), landCost = gv('landCost'), buildingCost = gv('buildingCost'), dep = gv('depreciationYears') || 10;
+    const operators = gv('operators'), helpers = gv('helpers'), supervisors = gv('supervisors');
+    const salaryOp = gv('salaryOperator'), salaryHe = gv('salaryHelper'), salarySuper = gv('salarySuper');
+    const inventoryValue = gv('inventoryValue'), damage = gv('damage'), obsolescence = gv('obsolescence'), shrinkage = gv('shrinkage');
+    const annualProduction = gv('annualProduction');
+    const astorCost = gv('astorCost'), installCost = gv('installCost'), wmsCost = gv('wmsCost'), amcCost = gv('amcCost');
+
+    const areaSaved = area * 0.75;
+    const spaceSaving = ownership === 'rented'
+      ? areaSaved * rent * 12
+      : areaSaved * (landCost + buildingCost) / dep;
+
+    const annualLabor = (operators * salaryOp + helpers * salaryHe + supervisors * salarySuper) * 12;
+    const laborSaving = annualLabor * 0.40;
+    const damageSaving = inventoryValue * (damage / 100);
+    const defectSaving = annualProduction * 0.005 * 0.50;
+    const fifoSaving = inventoryValue * (obsolescence / 100) * 0.90;
+    const shrinkageSaving = inventoryValue * (shrinkage / 100);
+    const throughputGain = annualProduction * 0.018;
+    const ops247 = annualProduction * 0.03;
+    const smartLogic = (annualLabor + damageSaving) * 0.03;
+
+    const totalBenefit = spaceSaving + laborSaving + damageSaving + defectSaving + fifoSaving + shrinkageSaving + throughputGain + ops247 + smartLogic;
+    const totalInvestment = astorCost + installCost + wmsCost;
+    const annualizedInvestment = totalInvestment / dep + amcCost;
+    const roi = ((totalBenefit - annualizedInvestment) / annualizedInvestment) * 100;
+    const payback = totalInvestment / (totalBenefit || 1);
+    const npv10 = totalBenefit * 10 - totalInvestment;
+
+    // Update header live total
+    document.getElementById('live-total').textContent = formatCr(totalBenefit);
+
+    // KPIs
+    document.getElementById('roi-val').textContent = formatPct(roi);
+    document.getElementById('payback-val').textContent = payback.toFixed(2) + ' yrs';
+    document.getElementById('invest-val').textContent = formatCr(totalInvestment);
+    document.getElementById('annual-cost-val').textContent = formatCr(annualizedInvestment);
+    document.getElementById('npv-val').textContent = formatCr(npv10);
+    document.getElementById('total-benefit-val').textContent = formatCr(totalBenefit);
+
+    // Benefit bars
+    const benefits = [
+      { label: 'Space Savings', value: spaceSaving },
+      { label: 'Labor Savings', value: laborSaving },
+      { label: 'Damage Reduction', value: damageSaving },
+      { label: 'Defect Reduction', value: defectSaving },
+      { label: 'FIFO / Obsolescence', value: fifoSaving },
+      { label: 'Inventory Accuracy', value: shrinkageSaving },
+      { label: 'Throughput & Yield', value: throughputGain },
+      { label: '24/7 Operations', value: ops247 },
+      { label: 'Smart Logic', value: smartLogic },
+    ];
+    const barsEl = document.getElementById('benefit-bars');
+    barsEl.innerHTML = benefits.map(b => {
+      const pct = totalBenefit > 0 ? Math.min(100, Math.max(0, (b.value / totalBenefit) * 100)) : 0;
+      return '<div class="benefit-row"><div class="benefit-row-top"><span class="benefit-label">' + b.label + '</span><span class="benefit-value">' + formatCr(b.value) + '</span></div><div class="bar-track"><div class="bar-fill" style="width:' + pct.toFixed(1) + '%"></div></div></div>';
+    }).join('');
+
+    // Verdict
+    const vEl = document.getElementById('verdict-box');
+    if (payback < 1.5) {
+      vEl.className = 'verdict good'; vEl.textContent = '▲ Exceptional ROI — Payback under 18 months';
+    } else if (payback < 2.5) {
+      vEl.className = 'verdict good'; vEl.textContent = '▲ Strong Investment — Payback under 2.5 years';
+    } else if (payback < 4) {
+      vEl.className = 'verdict warn'; vEl.textContent = '◆ Moderate ROI — Consider phased rollout';
+    } else {
+      vEl.className = 'verdict warn'; vEl.textContent = '◆ Review inputs — ROI below benchmark threshold';
+    }
+  }
+
+  // Listen to all inputs
+  document.querySelectorAll('input[type=number]').forEach(el => el.addEventListener('input', recalc));
+
+  // Initial calc
+  recalc();
+</script>
+</body>
+</html>
